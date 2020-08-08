@@ -1,8 +1,11 @@
 import React from 'react'
 
+import { getWormScore } from '../utils';
+
 import Tile from './Tile'
 
 const PlayerArea = (props) => {
+  const wormScore = getWormScore(props.player.tiles);
   const pickableValue = !props.isCurrPlayer && props.canPickTile &&
     [...props.player.tiles].pop() === props.score && props.score;
   const tiles = props.player.tiles.map((value, index) =>
@@ -23,7 +26,8 @@ const PlayerArea = (props) => {
       <div
         style={style}
       >
-        {props.player.name} ({props.player.worms})
+        <img src={props.player.flag} alt='flag' height='16' />&nbsp;
+        {props.player.name} ({wormScore})
       </div>
       <div className='tile-area'>
         {tiles}

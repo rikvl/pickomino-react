@@ -1,15 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 
 import { UserContext } from '../context';
-import {
-  getGame,
-  updateGameData,
-  streamGame,
-  addUserTile,
-  removeUserTile,
-  transferUserTile,
-  resetUsers
-} from '../firebase';
+import { getGame, streamGame, postEvent } from '../firebase';
 import {
   getRandomIntIncl,
   checkCollision,
@@ -19,19 +11,37 @@ import {
 
 import PlayerZone from '../components/PlayerZone';
 import TableTiles from '../components/TableTiles';
-import DiceArea from '../components/DiceArea';
-import RollArea from '../components/RollArea';
+import DiceSaveArea from '../components/DiceSaveArea';
+import DiceRollArea from '../components/DiceRollArea';
 
-import WormBig from '../assets/worm-big.png';
+import Logo from '../assets/logo192.png';
 
-let count = 0;
+let callCount = 0;
+let eventCount = 0;
 
 function GamePage({ match }) {
   const uid = useContext(UserContext);
   const gameId = match.params.id;
+
   const [loadingGame, setLoadingGame] = useState(true);
-  const [startingGame, setStartingGame] = useState(true);
-  const [gameData, setGameData] = useState({});
+
+  const [event, setEvent] = useState({});
+
+  const [winnerIndex, setWinnerIndex] = useState(-1);
+  const [nDiceLeft, setNDiceLeft] = useState(8);
+  const [score, setScore] = useState(0);
+
+  const [diceRolled, setDiceRolled] = useState([]);
+  const [diceSavedVals, setDiceSavedVals] = useState([]);
+
+  const [tilesTable, setTilesTable] = useState(tileValuesAll);
+  const [stealableTiles, setStealableTiles] = useState([]);
+
+  const [players, setPlayers] = useState([]);
+  const [nPlayers, setNPlayers] = useState(null);
+
+  const [currPlayerIndex, setCurrPlayerIndex] = useState(0);
+
   const [currUid, setCurrUid] = useState(null);
 
   const [justRolledDice, setJustRolledDice] = useState(false);
@@ -40,105 +50,178 @@ function GamePage({ match }) {
   const [canPickDice, setCanPickDice] = useState(false);
   const [canPickTile, setCanPickTile] = useState(false);
 
-  const [users, setUsers] = useState([]);
-
-  console.log(count++);
+  console.log(callCount++);
 
   useEffect(() => {
     
     async function initGame() {
       const game = await getGame(gameId);
       if (game.exists && game.get('users').length > 0) {
-        updateGameData(gameId, 'tilesTable', tileValuesAll);
-        updateGameData(gameId, 'diceRolled', []);
-        updateGameData(gameId, 'diceSavedVals', []);
-        updateGameData(gameId, 'nDiceLeft', 8);
-        resetUsers(gameId, game.get('users'));
-        updateGameData(gameId, 'currPlayerIndex', 
-          getRandomIntIncl(0, game.get('users').length-1));
-        updateGameData(gameId, 'winnerIndex', -1);
-        setStartingGame(false);
+        setPlayers(game.get('users').map(player => {
+          return {
+            ...player,
+            tiles: []
+          };
+        }));
+        setNPlayers(game.get('users').length);
+        setLoadingGame(false);
       }
     }
 
-    if (startingGame) {
-      console.log('starting');
+    if (loadingGame) {
+      console.log('starting1');
       initGame();
     }
-  }, [startingGame, gameId]);
+  }, [loadingGame, gameId]);
 
   useEffect(() => {
+    console.log('starting2');
     const unsubscribe = streamGame(gameId, snapshot => {
-      const updatedUsers = snapshot.get('users');
-      setUsers(updatedUsers);
-      setGameData(snapshot.get('gameData'));
-      setLoadingGame(false);
+      setEvent(snapshot.get('event'));
     });
 
     return unsubscribe;
   }, [gameId]);
 
-  useEffect(() => {
-    if (!loadingGame && !startingGame) {
-      setCurrUid(users[gameData.currPlayerIndex].userId);
-    }
-  }, [gameId, loadingGame, startingGame, users, gameData]);
+  // useEffect(() => {
+  //   console.log('starting');
+  //   const unsubscribe = streamGame(gameId, snapshot => {
+  //     setEvent(snapshot.get('event'));
+  //   });
+
+  //   getGame(gameId)
+  //     .then(doc => {
+  //       setPlayers(doc.get('users').map(player => {
+  //         return {
+  //           ...player,
+  //           tiles: []
+  //         };
+  //       }))
+  //       setNPlayers(doc.get('users').length);
+  //     })
+  //     .then(setLoadingGame(false));
+
+  //   return unsubscribe;
+  // }, [gameId]);
 
   useEffect(() => {
-    if (!loadingGame && !startingGame) {
+    if (!loadingGame && event.type) {
+      console.log(eventCount++, event.type);
+      switch (event.type) {
+
+        case 'startGame':
+          setTilesTable(tileValuesAll);
+          setDiceRolled([]);
+          setDiceSavedVals([]);
+          setPlayers(currPlayers => currPlayers.map(player =>
+            ({
+              ...player,
+              tiles: []
+            })
+          ));
+          setWinnerIndex(-1);
+          setCurrPlayerIndex(event.data.currPlayerIndex);
+          break;
+
+        case 'rollDice':
+          setDiceRolled(event.data.diceRolled);
+          break;
+
+        case 'pickDice':
+          setDiceRolled(event.data.diceRolled);
+          setDiceSavedVals(event.data.updatedDiceSavedVals);
+          break;
+
+        case 'pickTableTile':
+          setTilesTable(event.data.tilesTable);
+          setPlayers(event.data.players);
+          nextPlayer();
+          break;
+
+        case 'stealTile':
+          setPlayers(event.data.players);
+          nextPlayer();
+          break;
+
+        case 'handBackTile':
+          setTilesTable(event.data.tableTiles);
+          setPlayers(event.data.players);
+          nextPlayer();
+          break;
+
+        case 'stopRolling':
+          nextPlayer();
+          break;
+
+        default:
+          console.log('default');
+        
+      }
+    }
+
+    function nextPlayer() {
+      setDiceRolled([]);
+      setDiceSavedVals([]);
+      setCurrPlayerIndex(index => (index + 1) % nPlayers);
+    }
+  }, [loadingGame, event, nPlayers]);
+
+  useEffect(() => {
+    if (!loadingGame) {
+      setCurrUid(players[currPlayerIndex].userId);
+      setStealableTiles(players.map((user, index) =>
+        index === currPlayerIndex || user.tiles.length === 0 ?
+        null : [...user.tiles].pop()));
+    }
+  }, [loadingGame, players, currPlayerIndex]);
+
+  useEffect(() => {
+    if (!loadingGame) {
+      setScore(diceSavedVals.reduce((acc, curr) => acc + Math.min(curr, 5), 0));
+      setNDiceLeft(8 - diceSavedVals.length);
+    }
+  }, [loadingGame, diceSavedVals]);
+
+  useEffect(() => {
+    if (!loadingGame) {
+      if (tilesTable.length === 0) {
+        setWinnerIndex(getWinnerIndex(players));
+        setJustPickedDice(false);
+        setJustRolledDice(true);
+      }
+    }
+  }, [loadingGame, tilesTable, players]);
+
+  useEffect(() => {
+    if (!loadingGame) {
       setCanPickDice(
         uid === currUid &&
         !justPickedDice &&
-        !gameData.diceRolled
+        !diceRolled
           .map(dice => dice.value)
-          .every(val => gameData.diceSavedVals.includes(val))
+          .every(val => diceSavedVals.includes(val))
       )
     }
-  }, [loadingGame, startingGame, justPickedDice, gameData, uid, currUid]);
+  }, [loadingGame, uid, currUid, justPickedDice, diceRolled, diceSavedVals]);
 
   useEffect(() => {
-    if (!loadingGame && !startingGame) {
+    if (!loadingGame) {
       setCanPickTile(
         uid === currUid &&
         !justRolledDice &&
-        gameData.diceSavedVals.includes(6) &&
+        diceSavedVals.includes(6) &&
         (
-          gameData.score >= Math.min(...gameData.tilesTable) ||
-          gameData.stealableTiles.includes(gameData.score))
+          score >= Math.min(...tilesTable) ||
+          stealableTiles.includes(score))
       )
     }
-  }, [loadingGame, startingGame, justRolledDice, gameData, uid, currUid]);
-
-  useEffect(() => {
-    if (!loadingGame && !startingGame) {
-      const stealableTiles = users.map((user, index) =>
-        index === gameData.currPlayerIndex || user.tiles.length === 0 ?
-        null : [...user.tiles].pop());
-      updateGameData(gameId, 'stealableTiles', stealableTiles);
-    }
-  }, [gameId, loadingGame, startingGame, users, gameData]);
-
-  useEffect(() => {
-    if (!loadingGame && !startingGame) {
-      updateGameData(gameId,
-        'score', gameData.diceSavedVals.reduce((acc, curr) =>
-          acc + Math.min(curr, 5), 0));
-    }
-  }, [gameId, loadingGame, startingGame, gameData]);
-
-  useEffect(() => {
-    if (!loadingGame && !startingGame && gameData.tilesTable.length === 0) {
-      updateGameData(gameId, 'winnerIndex', getWinnerIndex(users));
-      setJustPickedDice(false);
-      setJustRolledDice(true);
-    }
-  }, [gameId, loadingGame, startingGame, users, gameData]);
+  }, [loadingGame, uid, currUid, justRolledDice, diceSavedVals, score, tilesTable, stealableTiles]);
 
   function rollRemainingDice() {
     const dice = [];
     const minDistance = 50 * Math.sqrt(2);
     let xPosNew, yPosNew;
-    for (let i = 0; i < gameData.nDiceLeft; i++) {
+    for (let i = 0; i < nDiceLeft; i++) {
       do {
         xPosNew = Math.random() * 480 + 25;
         yPosNew = Math.random() * 300 + 25;
@@ -150,65 +233,103 @@ function GamePage({ match }) {
         rot: Math.random()
       };
     }
-    updateGameData(gameId, 'diceRolled', dice);
+    postEvent(gameId, 'rollDice', {
+      diceRolled: dice
+    });
     setJustPickedDice(false);
     setJustRolledDice(true);
   }
 
   function stopRolling() {
     if (canPickTile) {
-      alert('pick a tile')
-    } else {
-      if (users[gameData.currPlayerIndex].tiles.length > 0) handBackTile();
-      setJustPickedDice(false);
-      setJustRolledDice(false);
-      nextPlayer();
+      alert('pick a tile');
+      return;
     }
+
+    if (players[currPlayerIndex].tiles.length > 0) {
+      handBackTile();
+    } else {
+      postEvent(gameId, 'stopRolling', null);
+    }
+    setJustPickedDice(false);
+    setJustRolledDice(false);
   }
 
   function handBackTile() {
-    const tileValue = [...users[gameData.currPlayerIndex].tiles].pop();
-    removeUserTile(gameId, users, gameData.currPlayerIndex, tileValue);
-    updateGameData(gameId, 'tilesTable', 
-      tileValue > Math.max(...gameData.tilesTable) ?
-      [...gameData.tilesTable, tileValue].sort() :
-      [...gameData.tilesTable.slice(0, -1), tileValue].sort());
+    const tileValue = [...players[currPlayerIndex].tiles].pop();
+    const updatedTableTiles = 
+      tileValue > Math.max(...tilesTable) ? (
+        [...tilesTable, tileValue].sort()
+      ) : (
+        [...tilesTable.slice(0, -1), tileValue].sort()
+      );
+    const updatedPlayers = players.map((player, index) =>
+      index === currPlayerIndex ? (
+        {
+          ...player,
+          tiles: [...player.tiles.slice(0,-1)]
+        }
+      ) : (
+        player
+      )
+    );
+    postEvent(gameId, 'handBackTile', {
+      tableTiles: updatedTableTiles,
+      players: updatedPlayers
+    })
   }
 
-  function pickDice(clickedValue) {
-    const dicePicked = gameData.diceRolled.filter(dice =>
-      dice.value === clickedValue);
-    const diceLeft = gameData.diceRolled.filter(dice =>
-      dice.value !== clickedValue);
-    updateGameData(gameId, 'diceRolled', diceLeft);
-    updateGameData(gameId, 'diceSavedVals',
-      [...gameData.diceSavedVals, ...dicePicked.map(dice => dice.value)]);
-    updateGameData(gameId, 'nDiceLeft', diceLeft.length);
+  function handleDiceClick(clickedValue) {
+    const diceLeft = diceRolled.filter(dice => dice.value !== clickedValue);
+    const dicePicked = diceRolled.filter(dice => dice.value === clickedValue);
+    const updatedDiceSavedVals =
+      [...diceSavedVals, ...dicePicked.map(dice => dice.value)];
+    postEvent(gameId, 'pickDice', {
+      diceRolled: diceLeft,
+      updatedDiceSavedVals: updatedDiceSavedVals
+    });
     setJustPickedDice(true);
     setJustRolledDice(false);
   }
 
-  function pickTile(clickedValue) {
-    const tilesLeft = gameData.tilesTable.filter(value => value !== clickedValue);
-    updateGameData(gameId, 'tilesTable', tilesLeft);
-    addUserTile(gameId, users, gameData.currPlayerIndex, clickedValue);
-    nextPlayer();
+  function handleTableTileClick(clickedValue) {
+    const tilesLeft = tilesTable.filter(value => value !== clickedValue);
+    const updatedPlayers = players.map((player, index) =>
+      index === currPlayerIndex ? (
+        {
+          ...player,
+          tiles: [...player.tiles, clickedValue]
+        }
+      ) : (
+        player
+      )
+    );
+    postEvent(gameId, 'pickTableTile', {
+      tilesTable: tilesLeft,
+      players: updatedPlayers
+    });
   }
 
   function handleTileSteal(clickedValue) {
-    const stealerIndex = gameData.currPlayerIndex;
-    const victimIndex = gameData.stealableTiles.findIndex(value =>
-      value === clickedValue);
-    transferUserTile(gameId, users, stealerIndex, victimIndex, clickedValue);
-    nextPlayer();
-  }
-
-  function nextPlayer() {
-    updateGameData(gameId, 'diceRolled', []);
-    updateGameData(gameId, 'diceSavedVals', []);
-    updateGameData(gameId, 'nDiceLeft', 8);
-    updateGameData(gameId, 'currPlayerIndex',
-      (gameData.currPlayerIndex + 1) % users.length);
+    const victimIndex = stealableTiles.findIndex(val => val === clickedValue);
+    const updatedPlayers = players.map((player, index) => {
+      if (index === currPlayerIndex) {
+        return {
+          ...player,
+          tiles: [...player.tiles, clickedValue]
+        };
+      } else if (index === victimIndex) {
+        return {
+          ...player,
+          tiles: [...player.tiles.slice(0,-1)]
+        };
+      } else {
+        return player;
+      }
+    });
+    postEvent(gameId, 'stealTile', {
+      players: updatedPlayers
+    });
   }
 
   function confirmReset() {
@@ -216,7 +337,9 @@ function GamePage({ match }) {
   }
 
   function resetGame() {
-    setStartingGame(true);
+    postEvent(gameId, 'startGame', {
+      currPlayerIndex: getRandomIntIncl(0, players.length-1)
+    });
     setJustPickedDice(true);
     setJustRolledDice(false);
   }
@@ -224,9 +347,9 @@ function GamePage({ match }) {
   const ScoreText = () => (
     <div style={{margin: 'auto'}}>
       Score:&nbsp;
-      {gameData.score}
+      {score}
       &nbsp;
-      {gameData.diceSavedVals.includes(6) ? '\u2714' : ''}
+      {diceSavedVals.includes(6) ? '\u2714' : ''}
     </div>
   );
 
@@ -238,7 +361,7 @@ function GamePage({ match }) {
         disabled={
           uid !== currUid ||
           justRolledDice ||
-          gameData.nDiceLeft === 0
+          nDiceLeft === 0
         }
       >
         Roll
@@ -248,7 +371,7 @@ function GamePage({ match }) {
         onClick={stopRolling}
         disabled={
           uid !== currUid ||
-          gameData.nDiceLeft === 8 ||
+          nDiceLeft === 8 ||
           (justRolledDice && canPickDice)
         }
       >
@@ -256,10 +379,10 @@ function GamePage({ match }) {
       </button>
       <button
         className='btn'
-        onClick={gameData.winnerIndex === -1 ? confirmReset : resetGame}
+        onClick={winnerIndex === -1 ? confirmReset : resetGame}
         disabled={false}
       >
-        {gameData.winnerIndex === -1 ? 'Reset Game' : 'New Game'}
+        {winnerIndex === -1 ? 'Reset Game' : 'New Game'}
       </button>
     </div>
   );
@@ -273,37 +396,36 @@ function GamePage({ match }) {
   return (
     <div className='game'>
       <PlayerZone
-        players={users}
-        currPlayer={gameData.currPlayerIndex}
-        winnerIndex={gameData.winnerIndex}
-        score={gameData.score}
+        players={players}
+        currPlayer={currPlayerIndex}
+        winnerIndex={winnerIndex}
+        score={score}
         canPickTile={canPickTile}
         handleClick={handleTileSteal}
       />
       <div className='table-zone'>
         <TableTiles
-          values={gameData.tilesTable}
-          score={gameData.score}
+          values={tilesTable}
+          score={score}
           canPickTile={canPickTile}
-          handleClick={pickTile}
+          handleClick={handleTableTileClick}
         />
         <img
           style={{margin: 'auto'}}
-          src={WormBig}
+          src={Logo}
           alt='worm'
-          width='75%' />
-        <DiceArea
-          values={gameData.diceSavedVals}
-          canPickDice={canPickDice}
-          diceSavedVals={gameData.diceSavedVals}
-          handleClick={pickDice}
+          width='75%'
+        />
+        <DiceSaveArea
+          values={diceSavedVals}
+          disabled={true}
         />
         <ScoreText />
-        <RollArea
-          dice={gameData.diceRolled}
+        <DiceRollArea
+          dice={diceRolled}
           canPickDice={canPickDice}
-          diceSavedVals={gameData.diceSavedVals}
-          handleClick={pickDice}
+          diceSavedVals={diceSavedVals}
+          handleClick={handleDiceClick}
         />
         <ButtonArea />
       </div>

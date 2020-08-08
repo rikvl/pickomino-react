@@ -15,7 +15,7 @@ const Dice = (props) =>
     ) : (
       <img
         src={require(`../assets/dice-${props.value}.svg`)}
-        alt='worm'
+        alt={`${props.value}`}
       />
     )}
   </button>

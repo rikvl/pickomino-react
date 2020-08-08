@@ -7,7 +7,7 @@ import { UserContext } from './context';
 
 import firebase from './firebase';
 
-import LobbyPage from './pages/LobbyPage';
+import HomePage from './pages/HomePage';
 import RoomPage from './pages/RoomPage';
 import GamePage from './pages/GamePage';
 
@@ -41,7 +41,7 @@ function App() {
       ) : (
         <UserContext.Provider value={uid}>
           <Switch>
-            <Route exact path='/' component={LobbyPage} />
+            <Route exact path='/' component={HomePage} />
             <Route exact path='/room/:id' component={RoomPage} />
             <Route exact path='/game/:id' component={GamePage} />
           </Switch>

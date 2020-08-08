@@ -2,8 +2,8 @@ import React from 'react'
 
 import Dice from './Dice'
 
-const RollArea = (props) => {
-  const dice = props.dice.map(({value, xPos, yPos, rot}, index) =>
+const DiceRollArea = (props) => {
+  const rolledDice = props.dice.map(({value, xPos, yPos, rot}, index) =>
     <Dice
       key={index}
       value={value}
@@ -24,9 +24,9 @@ const RollArea = (props) => {
   
   return (
     <div className='roll-area'>
-      {dice}
+      {rolledDice}
     </div>
   );
 }
 
-export default RollArea
+export default DiceRollArea

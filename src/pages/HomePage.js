@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Redirect } from 'react-router-dom';
 import { UserContext } from '../context';
-import { createGame } from '../firebase';
-import { generateUserName, generateGameName } from '../utils';
+import { createGame, addUserToGame } from '../firebase';
+import { generateUserName, generateGameName, getFlagUrl } from '../utils';
+
+import Logo from '../assets/logo192.png';
 
 function LobbyPage() {
   const uid = useContext(UserContext);
+  const [flagURL, setFlagURL] = useState(null);
   const [redirect, setRedirect] = useState(null);
   const [formData, setFormData] = useState({
     gameName: '',
@@ -13,16 +16,19 @@ function LobbyPage() {
   });
 
   useEffect(() => {
-    initForm();
+    // initialize form
+    generateGameName()
+      .then(gameName =>
+        setFormData({
+          gameName: gameName,
+          userName: generateUserName()
+        })
+      );
+    
+    // set user flag url
+    getFlagUrl()
+      .then(res => setFlagURL(res));
   }, []);
-
-  async function initForm() {
-    const gameName = await generateGameName();
-    setFormData({
-      gameName: gameName,
-      userName: generateUserName()
-    })
-  }
 
   function handleChange(event) {
     const {name, value} = event.target;
@@ -35,24 +41,17 @@ function LobbyPage() {
       event.preventDefault();
     }
 
-    createGame(formData.gameName, uid, formData.userName);
-
-    alert(`
-      Game created!\n
-      Game name: ${formData.gameName}\n
-      Created by\n
-      User ID: ${uid}\n
-      User name: ${formData.userName}
-    `);
-
-    setRedirect(`/room/${formData.gameName}`);
+    createGame(formData.gameName)
+      .then(addUserToGame(formData.gameName, uid, formData.userName, flagURL))
+      .then(setRedirect(`/room/${formData.gameName}`));
   }
 
   if (redirect) return <Redirect push to={redirect} />;
 
   return (
     <div className='flex-col'>
-      <h2>Pickomino Online - Lobby</h2>
+      <h1>Pickomino Online</h1>
+      <br />
       <form onSubmit={handleSubmit}>
         <label>
           Game Name:
@@ -61,7 +60,8 @@ function LobbyPage() {
             type='text'
             value={formData.gameName}
             name='gameName'
-            onChange={handleChange} />
+            onChange={handleChange}
+          />
         </label>
         <br />
         <br />
@@ -72,12 +72,23 @@ function LobbyPage() {
             type='text'
             value={formData.userName}
             name='userName'
-            onChange={handleChange} />
+            onChange={handleChange}
+          />
         </label>
         <br />
         <br />
-        <button type='submit'>Ready</button>
+        <br />
+        <button type='submit'>Create Game</button>
       </form>
+      <br />
+      <br />
+      <br />
+      <br />
+      <img
+        style={{margin: 'auto'}}
+        src={Logo}
+        alt='worm'
+      />
     </div>
   )
 }
