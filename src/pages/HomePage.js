@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Redirect } from 'react-router-dom';
+
 import { UserContext } from '../context';
+
 import { createGame, addUserToGame } from '../firebase';
-import { generateUserName, generateGameName, getFlagUrl } from '../utils';
+
+import { generateUserName, generateGameName } from '../utils/NameUtils';
 
 import Logo from '../assets/logo192.png';
 
 function LobbyPage() {
   const uid = useContext(UserContext);
-  const [flagURL, setFlagURL] = useState(null);
   const [redirect, setRedirect] = useState(null);
   const [formData, setFormData] = useState({
     gameName: '',
@@ -17,18 +19,30 @@ function LobbyPage() {
 
   useEffect(() => {
     // initialize form
+    renewGameName();
+    renewUserName();
+  }, []);
+
+  function renewGameName() {
     generateGameName()
       .then(gameName =>
-        setFormData({
-          gameName: gameName,
-          userName: generateUserName()
+        setFormData(curr => {
+          return {
+            gameName: gameName,
+            userName: curr.userName
+          };
         })
       );
-    
-    // set user flag url
-    getFlagUrl()
-      .then(res => setFlagURL(res));
-  }, []);
+  }
+
+  function renewUserName() {
+    setFormData(curr => {
+      return {
+        gameName: curr.gameName,
+        userName: generateUserName()
+      };
+    });
+  }
 
   function handleChange(event) {
     const {name, value} = event.target;
@@ -41,9 +55,9 @@ function LobbyPage() {
       event.preventDefault();
     }
 
-    createGame(formData.gameName)
-      .then(addUserToGame(formData.gameName, uid, formData.userName, flagURL))
-      .then(setRedirect(`/room/${formData.gameName}`));
+    createGame(formData.gameName);
+    addUserToGame(formData.gameName, uid, formData.userName);
+    setRedirect(`/room/${formData.gameName}`);
   }
 
   if (redirect) return <Redirect push to={redirect} />;
@@ -53,35 +67,37 @@ function LobbyPage() {
       <h1>Pickomino Online</h1>
       <br />
       <form onSubmit={handleSubmit}>
-        <label>
-          Game Name:
-          <br />
-          <input
-            type='text'
-            value={formData.gameName}
-            name='gameName'
-            onChange={handleChange}
-          />
-        </label>
+        <div className='form-element'>
+          <label>
+            Game Name:
+            <br />
+            <input
+              type='text'
+              value={formData.gameName}
+              name='gameName'
+              onChange={handleChange}
+            />
+          </label>
+          <button type='button' onClick={renewGameName}>&#x21bb;</button>
+        </div>
+        <div className='form-element'>
+          <label>
+            Your Username:
+            <br />
+            <input
+              type='text'
+              value={formData.userName}
+              name='userName'
+              onChange={handleChange}
+            />
+          </label>
+          <button type='button' onClick={renewUserName}>&#x21bb;</button>
+        </div>
         <br />
-        <br />
-        <label>
-          Your Username:
-          <br />
-          <input
-            type='text'
-            value={formData.userName}
-            name='userName'
-            onChange={handleChange}
-          />
-        </label>
-        <br />
-        <br />
-        <br />
-        <button type='submit'>Create Game</button>
+        <div className='form-element'>
+          <button className='submit-btn' type='submit'>Create Game</button>
+        </div>
       </form>
-      <br />
-      <br />
       <br />
       <br />
       <img

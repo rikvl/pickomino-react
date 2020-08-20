@@ -1,33 +1,47 @@
 import React from 'react'
 
-import { getWormScore } from '../utils';
+import { getWormScore } from '../utils/GameUtils';
 
 import Tile from './Tile'
 
-const PlayerArea = (props) => {
-  const wormScore = getWormScore(props.player.tiles);
-  const pickableValue = !props.isCurrPlayer && props.canPickTile &&
-    [...props.player.tiles].pop() === props.score && props.score;
-  const tiles = props.player.tiles.map((value, index) =>
+const PlayerArea = ({
+  gameId,
+  gameData,
+  player,
+  isCurrPlayer,
+  isWinner,
+  canPickTile,
+  handleClick
+}) => {
+  const wormScore = getWormScore(player.tiles);
+  const pickableValue = !isCurrPlayer && canPickTile &&
+    [...player.tiles].pop() === gameData.score && gameData.score;
+  const tiles = player.tiles.map((value, index) =>
     <Tile
       key={index}
+      gameId={gameId}
+      gameData={gameData}
       value={value}
       disabled={!(value === pickableValue)}
-      handleClick={props.handleClick}
+      handleClick={handleClick}
     />
   );
 
   const style = {
-    color: props.isWinner ? 'gold' : props.isCurrPlayer && 'red'
+    color: isWinner ? 'gold' : isCurrPlayer && 'red'
   }
   
   return (
     <div className='player-area'>
-      <div
-        style={style}
-      >
-        <img src={props.player.flag} alt='flag' height='16' />&nbsp;
-        {props.player.name} ({wormScore})
+      <div style={style}>
+        <img
+          className='flag'
+          src={player.flag}
+          alt='flag'
+        />
+        &nbsp;
+        {player.name}
+        &nbsp;({wormScore})
       </div>
       <div className='tile-area'>
         {tiles}

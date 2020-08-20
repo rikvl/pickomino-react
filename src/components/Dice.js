@@ -1,23 +1,31 @@
 import React from 'react';
 
-const Dice = (props) => 
+const Dice = ({
+  gameId,
+  gameData,
+  value,
+  disabled,
+  handleClick,
+  style
+}) => (
   <button
     className='dice'
-    style={props.style}
-    disabled={props.disabled}
-    onClick={() => props.handleClick(props.value)}
+    style={style}
+    disabled={disabled}
+    onClick={() => handleClick(gameId, gameData, value)}
   >
-    {props.value === 6 ? (
+    {value === 6 ? (
       <img
         src={require('../assets/worm.svg')}
         alt='worm'
       />
     ) : (
       <img
-        src={require(`../assets/dice-${props.value}.svg`)}
-        alt={`${props.value}`}
+        src={require(`../assets/dice-${value}.svg`)}
+        alt={`${value}`}
       />
     )}
   </button>
+);
 
 export default Dice

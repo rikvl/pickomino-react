@@ -2,18 +2,18 @@ import React from 'react'
 
 import Dice from './Dice'
 
-const DiceSaveArea = (props) => {
-  const savedDice = props.values.map((value, index) =>
+const DiceSaveArea = ({ gameData }) => {
+  const savedDice = gameData.diceSavedVals.map((value, index) =>
     <Dice
       key={index}
       value={value}
-      disabled={props.disabled}
+      disabled={true}
       handleClick={() => {}}
     />
   );
   
   return (
-    <div className='dice-area'>
+    <div>
       {savedDice}
     </div>
   );

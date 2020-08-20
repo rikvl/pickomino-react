@@ -2,6 +2,9 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import 'firebase/auth';
 
+import { getFlagUrl } from './utils/ApiUtils';
+import { tileValsAll } from './utils/GameUtils';
+
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_API_KEY,
   authDomain: process.env.REACT_APP_AUTH_DOMAIN,
@@ -15,22 +18,58 @@ export const createGame = (gameId) => {
   return db.collection('games').doc(gameId).set({
     created: firebase.firestore.FieldValue.serverTimestamp(),
     users: [],
-    event: {
-      type: null,
-      data: null
+    data: {
+      status: 'waiting',
+      players: [],
+      currPlayerIndex: null,
+      currUid: null,
+      winnerIndex: -1,
+      nDiceLeft: 8,
+      diceRolled: [],
+      diceSavedVals: [],
+      score: 0,
+      tilesTable: tileValsAll,
+      stealableTiles: [],
+      justRolledDice: false,
+      justPickedDice: false
     }
   });
 };
 
-export const addUserToGame = (gameId, userId, userName, flagURL) => {
+export const addUserToGame = async (gameId, userId, userName) => {
+
+  const flagUrl = await getFlagUrl();
+
+  const game = await getGame(gameId);
+  const gameData = game.get('data');
+
+  const updatedPlayers = gameData.players;
+  updatedPlayers.push({
+    userId: userId,
+    name: userName,
+    flag: flagUrl,
+    tiles: []
+  });
+
+  updateGame(gameId, {
+    ...gameData,
+    players: updatedPlayers
+  });
+};
+
+export const changeFlag = async (gameId, userId, flagUrl) => {
+  const game = await getGame(gameId);
+  const users = game.get('data.players');
+  const updatedUsers = users.map(user => {
+    return user.userId === userId ? ({
+      ...user,
+      flag: flagUrl
+    }) : (
+      user
+    );
+  });
   return db.collection('games').doc(gameId).update({
-    users: firebase.firestore.FieldValue.arrayUnion(
-      { 
-        userId: userId,
-        name: userName,
-        flag: flagURL
-      }
-    )
+    'data.players': updatedUsers
   });
 };
 
@@ -42,10 +81,9 @@ export const streamGame = (gameId, observer) => {
   return db.collection('games').doc(gameId).onSnapshot(observer);
 };
 
-export const postEvent = (gameId, type, data) => {
+export const updateGame = (gameId, data) => {
   return db.collection('games').doc(gameId).update({
-    'event.type': type,
-    'event.data': data
+    'data': data
   });
 };
 

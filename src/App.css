@@ -1,17 +1,34 @@
 :root {
-  --tile-width: 50px;
+  --base-unit: 50px;
+  --tile-width: var(--base-unit);
   --tile-height: calc(var(--tile-width) * 2);
-  --tile-container-width: calc(var(--tile-width) + 10px);
-  --tile-container-height: calc(var(--tile-height) + 10px);
-  --dice-size: 50px;
+  --tile-container-width: calc(var(--tile-width) + var(--base-unit) * 0.16);
+  --tile-container-height: calc(var(--tile-height) + var(--base-unit) * 0.16);
+  --dice-size: var(--base-unit);
+  --roll-area-width: calc((var(--dice-size) + var(--base-unit) * 0.16) * 10);
+  --roll-area-height: calc((var(--dice-size) + var(--base-unit) * 0.16) * 7);
+  --button-area-width: calc(var(--base-unit) * 4);
+}
+
+@media all and (max-width: 800px) {
+  :root {
+    --base-unit: 8vw;
+    --roll-area-width: calc((var(--dice-size) + var(--base-unit) * 0.16) * 8);
+    --roll-area-height: calc((var(--dice-size) + var(--base-unit) * 0.16) * 5.6);
+    --button-area-width: calc(var(--base-unit) * 2.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   background-color: #bbb;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -20,73 +37,148 @@ label {
   font-weight: bold;
 }
 
-form input, form > button {
+.flag {
+  height: 0.7em;
+}
+
+input, button {
   margin-top: 5px;
-  width: 300px;
   height: 30px;
-  box-sizing: border-box;
   font-size: 20px;
+}
+
+.form-element {
+  margin: 0 0 1.5em 0;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+form {
+  width: 300px;
+}
+
+@media all and (max-width: 800px) {
+  form {
+    width: 90vw;
+  }
+}
+
+.form-element > label {
+  flex-grow: 1;
+}
+
+input, .submit-btn {
+  width: 100%;
+}
+
+.link-sharing > input {
+  width: 60ex;
+  display: inline-block;
+  text-align: center;
+  color: maroon;
+}
+
+.link-sharing > button {
+  width: 10ex;
+}
+
+@media all and (max-width: 800px) {
+  .link-sharing {
+    width: 90vw;
+    display: flex;
+    flex-flow: column;
+  }
+  .link-sharing > input, .link-sharing > button {
+    width: 100%;
+  }
 }
 
 .game {
   width: 100vw;
+  height: 100vh;
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 2fr;
+  /* display: grid;
+  grid-template-columns: 1fr 2fr; */
+  display: flex;
+  justify-content: space-between;
   font-size: calc(10px + 2vmin);
   color: #222;
 }
 
-.flex-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-around;
+.player-zone {
+  padding-left: calc(var(--base-unit) * 0.4);
 }
 
 .table-zone {
-  margin: 0 auto;
+  margin: 0;
   display: grid;
   grid-template-columns:
-    calc((var(--dice-size) + 8px) * 10)
-    200px;
+    var(--roll-area-width)
+    var(--button-area-width);
   grid-template-rows:
-    calc(var(--tile-container-height) * 2 + 20px)
-    calc(var(--dice-size) + 10px)
-    calc(var(--dice-size) * 8);
+    calc(var(--tile-container-height) * 2 + calc(var(--base-unit) * 0.4))
+    calc(var(--dice-size) + calc(var(--base-unit) * 0.2))
+    var(--roll-area-height);
   align-items: center;
 }
 
+@media all and (max-width: 800px) {
+  .game {
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .player-zone {
+    order: 2;
+    margin-top: calc(var(--base-unit) * 0.25);
+  }
+  .table-zone {
+    order: 1;
+    margin: 0 auto;
+  }
+}
+
+.flex-col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+.logo {
+  margin: auto;
+}
+
 .btn {
-  margin: 20px auto;
-  width: 100px;
-  height: 80px;
-  font-size: 25px;
+  margin: 0 auto;
+  width: calc(var(--base-unit) * 2);
+  height: calc(var(--base-unit) * 1.5);
+  font-size: calc(var(--base-unit) * 0.5);
 }
 
 .dice-area {
-  width: calc((var(--dice-size) + 8px) * 10);
-  height: calc(var(--dice-size) + 10px);
+  width: var(--roll-area-width);
+  height: calc(var(--dice-size) + var(--base-unit) * 0.2);
   display: flex;
   flex-direction: row;
   justify-content: left;
 }
 
 .roll-area {
-  width: calc((var(--dice-size) + 8px) * 10);
-  height: calc(var(--dice-size) * 8);
+  position: relative;
+  width: var(--roll-area-width);
+  height: var(--roll-area-height);
   background-color: #999;
   border: 2px solid #222;
   border-radius: 10px;
 }
 
 .dice {
-  margin: 4px;
-  border-radius: 6px;
+  margin: calc(var(--base-unit) * 0.08);
+  border-radius: calc(var(--base-unit) * 0.12);
   width: var(--dice-size);
   height: var(--dice-size);
-  font-size: calc(var(--dice-size) * 1.5);
-  line-height: 0;
 }
 
 .dice > img {
@@ -103,27 +195,27 @@ form input, form > button {
 }
 
 .player-area {
-  margin: 0 auto 0 20px;
+  margin: 0 auto 0 0;
 }
 
 .tile-area {
-  margin-top: 4px;
+  margin-top: calc(var(--base-unit) * 0.08);
   height: var(--tile-container-height);
   display: flex;
   flex-direction: row;
   justify-content: left;
 }
 
-.tile-area > .tile:first-child {
-  margin-left: 0px;
+.tile-area > .tile {
+  margin-left: 0;
 }
 
-.tile-area > .tile {
-  margin-left: 0px;
+.tile-area > .tile:first-child {
+  margin-left: 0;
 }
 
 .tile {
-  margin: 4px;
+  margin: calc(var(--base-unit) * 0.08);
   width: var(--tile-width);
   height: var(--tile-height);
   font-size: calc(var(--tile-height) / 4);
@@ -152,7 +244,7 @@ form input, form > button {
 
 button {
   border: 1px solid #333;
-  border-radius: 4px;
+  border-radius: calc(var(--base-unit) * 0.08);
 }
 
 button:disabled {
