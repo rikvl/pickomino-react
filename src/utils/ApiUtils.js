@@ -1,41 +1,4 @@
 
-export async function getWeather() {
-  const coords = await getCoords();
-  console.log(coords);
-  const weather = await getWeatherFromCoords(coords);
-  return weather;
-}
-
-async function getCoords() {
-  try {
-    const url = 'https://ipgeolocation.com/?json=1';
-    const res = await fetch(url);
-    const data = await res.json();
-    const rawCoords = data.coords.split(',');
-    return {
-      lat: rawCoords[0],
-      lon: rawCoords[1]
-    };
-  } catch(err) {
-    console.error(err);
-  }
-}
-
-async function getWeatherFromCoords(coords) {
-  try {
-    const url = 'https://fcc-weather-api.glitch.me/api/current?'
-      + `lat=${coords.lat}&lon=${coords.lon}`;
-    console.log(url);
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log(data);
-    return data.weather[0].main;
-  } catch(err) {
-    console.error(err);
-    return 'Not working...';
-  }
-}
-
 export async function getFlagUrl() {
   const countryName = await getCountryName();
   const flagUrl = await getFlagUrlFromCountryName(countryName, 'automatic');
