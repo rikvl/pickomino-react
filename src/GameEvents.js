@@ -95,7 +95,7 @@ export function handleTableTileClick(gameId, gameData, clickedValue) {
     status: gameFinished ? 'finished' : 'ingame',
     players: updatedPlayers,
     currPlayerIndex: (gameData.currPlayerIndex + 1) % gameData.players.length,
-    winnerIndex: gameFinished ? getWinnerIndex(gameData.players) : -1,
+    winnerIndex: gameFinished ? getWinnerIndex(updatedPlayers) : -1,
     diceRolled: [],
     diceSavedVals: [],
     tilesTable: tilesLeft,
