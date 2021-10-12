@@ -37,10 +37,6 @@ label {
   font-weight: bold;
 }
 
-.flag {
-  height: 0.7em;
-}
-
 input, button {
   margin-top: 5px;
   height: 30px;

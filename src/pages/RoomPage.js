@@ -10,7 +10,6 @@ import { getRandomIntIncl } from '../utils/common';
 import Logo from '../assets/logo192.png';
 
 import LinkSharing from '../components/LinkSharing';
-import UserName from '../components/UserName';
 import EnterRoomForm from '../components/EnterRoomForm';
 
 function RoomPage({ match }) {
@@ -38,11 +37,9 @@ function RoomPage({ match }) {
 
   const UserNameList = () => {
     const userNameList = users.map((user, index) =>
-      <UserName
-        key={index}
-        gameId={gameId}
-        user={user}
-      />
+      <h3 key={index}>
+        {user.name}
+      </h3>
     );
 
     return (

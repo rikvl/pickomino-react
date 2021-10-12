@@ -2,7 +2,6 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import 'firebase/auth';
 
-import { getFlagUrl } from './utils/ApiUtils';
 import { tileValsAll } from './utils/GameUtils';
 
 const firebaseConfig = {
@@ -38,8 +37,6 @@ export const createGame = (gameId) => {
 
 export const addUserToGame = async (gameId, userId, userName) => {
 
-  const flagUrl = await getFlagUrl();
-
   const game = await getGame(gameId);
   const gameData = game.get('data');
 
@@ -47,29 +44,12 @@ export const addUserToGame = async (gameId, userId, userName) => {
   updatedPlayers.push({
     userId: userId,
     name: userName,
-    flag: flagUrl,
     tiles: []
   });
 
   updateGame(gameId, {
     ...gameData,
     players: updatedPlayers
-  });
-};
-
-export const changeFlag = async (gameId, userId, flagUrl) => {
-  const game = await getGame(gameId);
-  const users = game.get('data.players');
-  const updatedUsers = users.map(user => {
-    return user.userId === userId ? ({
-      ...user,
-      flag: flagUrl
-    }) : (
-      user
-    );
-  });
-  return db.collection('games').doc(gameId).update({
-    'data.players': updatedUsers
   });
 };
 

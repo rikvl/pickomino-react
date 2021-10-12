@@ -34,12 +34,6 @@ const PlayerArea = ({
   return (
     <div className='player-area'>
       <div style={style}>
-        <img
-          className='flag'
-          src={player.flag}
-          alt='flag'
-        />
-        &nbsp;
         {player.name}
         &nbsp;({wormScore})
       </div>
