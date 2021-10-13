@@ -16,12 +16,12 @@ const Dice = ({
   >
     {value === 6 ? (
       <img
-        src={require('../assets/worm.svg')}
+        src={require('../assets/worm.svg').default}
         alt='worm'
       />
     ) : (
       <img
-        src={require(`../assets/dice-${value}.svg`)}
+        src={require(`../assets/dice-${value}.svg`).default}
         alt={`${value}`}
       />
     )}
